@@ -8,6 +8,7 @@
 #==== packages ================================================================
 
 library(dplyr)
+library(tidyr)
 
 #===============================================================================
 
@@ -28,10 +29,22 @@ exp_ag <- export %>%
   filter(BIOME=='MATA ATLANTICA')
 
 
+# first change data format
+
+names(veg)[3:5] <- paste0(seq(2015,2017,1))
+
+
+veg_long <- veg %>% pivot_longer(cols =c(3:5),names_to = "YEAR",values_to = "fc_m" )
+
+
+str(veg_long)
+
+veg_long$YEAR <- as.integer(veg_long$YEAR)
+
 # combining the data
 
+exp_veg <- left_join(veg_long,exp_ag,by= c("code_mn"="codigo_ibg","YEAR"))
 
-exp_veg <- left_join(veg,exp_ag,by= c("code_mn"="codigo_ibg"))
 
 exp_veg$exporter[is.na(exp_veg$total_land)] <- "non-exporter"
 
@@ -42,7 +55,7 @@ exp_veg$exporter[!is.na(exp_veg$total_land)] <- "exporter"
 
 exp_veg$BIOME <- "Atlantic-Forest"
 
-names(exp_veg)[11:12] <- paste(names(exp_veg)[11:12],"_",'trase')
+names(exp_veg)[9:10] <- paste(names(exp_veg)[9:10],"_",'trase')
 
 
 # exporting data
