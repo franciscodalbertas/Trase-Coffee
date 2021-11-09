@@ -7,47 +7,13 @@
 #==== pacotes ==================================================================
 
 # Load package
-library(networkD3)
+
 library(dplyr)
+library(ggalluvial)
+library(ggpubr)
 
 #===============================================================================
 
-#==== Example plot: ============================================================
-
-# Load energy projection data
-URL <- "https://cdn.rawgit.com/christophergandrud/networkD3/master/JSONdata/energy.json"
-Energy <- jsonlite::fromJSON(URL)
-
-
-Energy_nodes <- Energy[[2]]
-Energy_links <- Energy[[1]]
-
-# n levels = numero de linhas dos links
-
-head(Energy[[1]])
-head(Energy[[2]])
-nrow(Energy[[1]])
-nrow(Energy[[2]])# o df de source, target eh maior!
-
-summary(Energy$links$source)
-summary(Energy$links$target)
-
-
-Energy$links$source <- as.character(Energy$links$source)
-Energy$links$target <- as.character(Energy$links$target)
-
-# Now we have 2 data frames: a 'links' data frame with 3 columns 
-# (from, to, value), and a 'nodes' data frame that gives the name of each node.
-
-# Thus we can plot it
-sankeyNetwork(Links = Energy$links, Nodes = Energy$nodes, Source = "source",
-              Target = "target", Value = "value", NodeID = "name",
-              units = "TWh", fontSize = 12, nodeWidth = 30)
-?networkD3
-
-str(Energy$links)
-
-#==== testing with trase data ==================================================
 
 trase <- read.csv("exports_codigo_ibg.csv")
 
@@ -55,9 +21,6 @@ trase <- read.csv("exports_codigo_ibg.csv")
 # source e target tem q ser inteiros!!
 
 # e os valores precisam bater, acho q os valores tem q ser unicos, nao repetidos!
-
-
-
 
 # aggregate data by State
 
@@ -96,10 +59,12 @@ sankeyNetwork(Links = trase_list$links, Nodes =trase_list$nodes, Source = "sourc
 
 #===============================================================================
 
+# limitando ano
+
 trase_agg <- trase %>% group_by(STATE,COUNTRY,TYPE,YEAR)%>%
   summarise(total_land=sum(land_use_ha),total_prod=sum(production))
 
-# limitando ano
+
 trase_agg <- trase_agg[trase_agg$YEAR==2015,]  
 
 # tem q ser 0 indexed, ou seja comecar do 0
@@ -126,25 +91,10 @@ head(trase_list[[2]])
 str(trase_list[[1]])
 str(trase_list[[2]])
 
-
-
-p <- sankeyNetwork(Links = trase_list$links, Nodes =trase_list$nodes, Source = "source",
-              Target = "target", Value = "total_prod", NodeID = "name",
-              fontSize = 14,nodeWidth = 30)
-
-# more options of packages. Esse parece melhor e mais flexivel:
-
-# https://chart-studio.plotly.com/~alishobeiri/1591/plotly-sankey-diagrams/#/
-
-
-#==== tentativa com ggplot =====================================================
-
 # https://cran.r-project.org/web/packages/ggalluvial/vignettes/ggalluvial.html
 
-library(ggalluvial)
-library(ggpubr)
-library(tidyr)
-library(forcats)
+
+#tipo de grafico 1
 
 ggplot(trase_agg,
        aes(y = total_prod, axis1 = STATE, axis2 = COUNTRY)) +
@@ -173,7 +123,7 @@ ggplot(data, aes(x, id = id, split = y, value = value)) +
 ggplot(trase_agg, aes(x, id = id, split = y, value = total_prod)) +
   geom_parallel_sets(aes(fill = STATE), alpha = 0.3, axis.width = 0.1)
 
-# funcao mto boa pra organizar dados!
+# funcao  pra organizar dados!
 trase_agg2 <- gather_set_data(trase_agg, c(1,2))
 
 trase_agg2$x <- factor(trase_agg2$x,levels = c("STATE","COUNTRY"))
@@ -186,4 +136,4 @@ x <- ggplot(trase_agg2, aes(x, id = id, split = y, value = total_prod)) +
   geom_parallel_sets_labels(colour = 'darkgray',angle =0, size = 2)+
   theme_void()
 
- ggsave(filename = "flow_chart.jpg",plot = x,width = 20,height = 30,units = "cm")
+ggsave(filename = "flow_chart.jpg",plot = x,width = 20,height = 30,units = "cm")
