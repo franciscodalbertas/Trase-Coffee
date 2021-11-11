@@ -72,17 +72,11 @@ st_geometry(spatial_car2) <- NULL
 
 spatial_car2 <- spatial_car2[spatial_car2$cd_mun %in% mun$code_mn,]
 
-length(unique(spatial_car2$cd_mun))
-
 # saving table
 
 write.csv(spatial_car2,"car_targeted_mun.csv",row.names = F)
 
 # aggregating data by municipallity
-
-names(spatial_car2)
-
-summary(spatial_car2$app_defici[spatial_car2$cd_mun=="2200400"])
 
 car_agg <- spatial_car2%>%
   group_by(cd_mun)%>%
