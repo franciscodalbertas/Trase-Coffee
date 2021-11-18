@@ -76,17 +76,33 @@ spatial_car2 <- spatial_car2[spatial_car2$cd_mun %in% mun$code_mn,]
 
 write.csv(spatial_car2,"car_targeted_mun.csv",row.names = F)
 
+
+# opening car for the targeted mun
+
+car <- read.csv("car_targeted_mun.csv")
+
 # aggregating data by municipallity
 
-car_agg <- spatial_car2%>%
+car_agg <- car%>%
   group_by(cd_mun)%>%
   summarise(app_deficit_t=sum(app_defici),lr_deficit=sum(lr_deficit),
-            lr_deficit_1=sum(lr_defic_1))
+            lr_deficit_1=sum(lr_defic_1),total_area=sum(areaproc))
 
 
 length(unique(car_agg$cd_mun)) # tem 840 municipios
 
 
+# calculating % of deficit (considering the muncipality area)
+
+car_agg$relative_deficit <- (car_agg$app_deficit_t+car_agg$lr_deficit)/
+  car_agg$total_area
+
+car_agg$relative_deficit_1 <- (car_agg$app_deficit_t+car_agg$lr_deficit_1)/
+  car_agg$total_area
+
+
+
 write.csv(x = car_agg,file = "legal_forest_debt.csv",row.names = F)
+
 
 
