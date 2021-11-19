@@ -21,17 +21,13 @@ library(ggforce)
 
 #===============================================================================
 
-# essa tabela ta errada! tem mtas combinacoes de estado com mun. precisa
-# corrigir e gerar ela de novo
-
-# precisa de um id unico excluindo estado acho! vou ignorar por enquanto
-# e gerar figuras como se tivesse certo!
 
 trase <- read.csv("exports_codigo_ibg.csv",row.names = 1)
+names(trase)
+# agregate by mu, year and exporter
 
-teste <- trase[trase$MUNICIPALITY=="ABATIA",]
-
-teste2 <- teste[duplicated(teste$production),]
+trase_agg <- trase %>% group_by(MUNICIPALITY,YEAR,COUNTRY,codigo_ibg)%>%
+  summarise(production_t=sum(production))
 
 # adding fc data
 
@@ -39,10 +35,10 @@ fc <- read.csv("fc_export.csv")
 
 fc <- unique(fc[,c(4,6,7)])
 
-trase_fc <- left_join(trase,fc,by=c("codigo_ibg"="code_mn",
+trase_fc <- left_join(trase_agg,fc,by=c("codigo_ibg"="code_mn",
                                                "YEAR"="YEAR"))
 
-# excluir NA apenas enquanto o dado esta errado
+# clean nas from fc
 
 trase_fc <- trase_fc%>% drop_na(fc_m)
 
@@ -50,19 +46,44 @@ trase_fc <- trase_fc%>% drop_na(fc_m)
 
 trase_fc$fc_cat <- cut(trase_fc$fc_m,breaks = c(-1,0.2,1.1))
 
+summary(trase_fc$fc_cat)
+
 # plot 2015 data
 
 trase_2015 <- filter(trase_fc,YEAR==2015)
 
-trase_2015 <- trase_2015[,c(1,12,16,19)]
+# aggregating data
+
+summary(trase_2015$production_t)
+
+
+trase_2015$COUNTRY_agg <- NA
+
+trase_2015$COUNTRY_agg[trase_2015$production_t>=2*(mean(trase_2015$production_t))] <- 
+    trase_2015$COUNTRY[trase_2015$production_t>=2*mean(trase_2015$production_t)]
+
+trase_2015$COUNTRY_agg[trase_2015$production_t<2*mean(trase_2015$production_t)] <- 
+  "OTHERS"
+
+trase_2015$mun_agg <- NA
+trase_2015$mun_agg[trase_2015$COUNTRY_agg=="OTHERS"] <- "OHTERS"
+trase_2015$mun_agg[trase_2015$COUNTRY_agg!="OTHERS"] <- trase_2015$MUNICIPALITY[trase_2015$COUNTRY_agg!="OTHERS"]
+
+levels(as.factor(trase_2015$COUNTRY_agg))
+
+levels(as.factor(trase_2015$mun_agg))
+ 
+
 
 # set data right format
 
-trase_2015_rs <- gather_set_data(trase_2015, c(4,2))
+trase_2015_rs <- gather_set_data(trase_2015, c(8,9))
 
-str(trase_2015_rs$COUNTRY)
 
-ggplot(trase_2015_rs, aes(x, id = id, split = y, value = production)) +
+trase_2015_rs$x <- factor(trase_2015_rs$x,levels = c("mun_agg","COUNTRY_agg"))
+
+
+ggplot(trase_2015_rs, aes(x, id = id, split = y, value = production_t)) +
   geom_parallel_sets(aes(fill = fc_cat), alpha = 0.3, axis.width = 0.3)+
   #theme_void()
   geom_parallel_sets_axes(axis.width = 0.3)+
